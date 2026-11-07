@@ -128,9 +128,9 @@ h2,h3{font-size:var(--text-body);font-weight:600;line-height:1.5;margin:0}
 .readout-value>span.changed-text{color:var(--copper)}
 .value-interpretations{display:flex;flex-wrap:wrap;gap:6px 24px;font-size:var(--text-ui);color:var(--board-muted);margin-top:4px}
 .value-interpretations b{font:var(--text-body) var(--mono);color:#d1e3d2;margin-left:7px}
-.bit-labels{display:flex;justify-content:space-between;font:12px var(--mono);letter-spacing:1px;color:#9bc0ae;margin-top:16px;margin-bottom:7px}
+.bit-labels{display:flex;justify-content:space-between;font:var(--text-label) var(--mono);letter-spacing:1px;color:#9bc0ae;margin-top:16px;margin-bottom:7px}
 .bit-strip{display:grid;grid-template-columns:repeat(16,1fr);gap:4px}
-.bit-strip>span{height:24px;border:1px solid #476b5d;background:#234b43;color:#a1c6b0;display:grid;place-items:center;font:13px var(--mono);border-radius:1px;transition:background .2s,color .2s}
+.bit-strip>span{height:26px;border:1px solid #476b5d;background:#234b43;color:#a1c6b0;display:grid;place-items:center;font:var(--text-label) var(--mono);border-radius:1px;transition:background .2s,color .2s}
 .bit-strip>span:nth-child(4n){margin-right:4px}
 .bit-strip>span.on{background:#abd1b2;border-color:#bdddc0;color:#183e32}
 .bit-strip>span.bit-changed{background:var(--copper);border-color:#f8c491;color:#4b301b}
@@ -226,8 +226,8 @@ footer{display:flex;align-items:center;justify-content:space-between;gap:20px;pa
   .processor{padding:17px 17px 0}.processor-top>div{gap:8px}.processor-model{font-size:15px}
   .processor .section-tag,.processor-model>span{display:none}
   .readout-value{flex-wrap:wrap;gap:0 10px}.readout-value>strong{font-size:64px;letter-spacing:3px}
-  .readout-value>span{margin-bottom:8px}.readout-unit{font-size:12px;letter-spacing:0}
-  .bit-strip{gap:2px}.bit-strip>span{height:24px}.bit-strip>span:nth-child(4n){margin-right:1px}
+  .readout-value>span{margin-bottom:8px}.readout-unit{letter-spacing:0}
+  .bit-strip{gap:2px}.bit-strip>span:nth-child(4n){margin-right:1px}
   .registers{grid-template-columns:repeat(2,1fr);gap:8px}.register-cell{min-height:52px;padding:10px}.register-cell>strong{font-size:20px}
   .segments{margin-left:-17px;margin-right:-17px;padding:14px 17px}.segments b{margin-left:4px}
   .notes-grid{grid-template-columns:1fr;gap:14px;margin-top:14px}.memory-empty{flex-direction:row;align-items:center;gap:17px;min-height:90px}
