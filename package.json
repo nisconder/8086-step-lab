@@ -1,0 +1,10 @@
+{
+  "name": "8086-step-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A small, offline 16-bit assembly teaching lab with visible flags, memory and reversible steps.",
+  "scripts": { "test": "node --test", "start": "node server.mjs" },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

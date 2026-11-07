@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="逐条执行一个小型 8086 指令子集，观察寄存器、标志位、内存与调用栈。完全在浏览器本地运行。">
+  <meta name="color-scheme" content="light"><title>8086 Step Lab · 看见指令的每一步</title>
+  <link rel="stylesheet" href="style.css"><script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <header class="masthead"><a class="brand" href="./"><span class="chip" aria-hidden="true">86</span><span>STEP LAB<small>8086 指令实验室</small></span></a><nav aria-label="相关链接"><a href="https://nisconder.pages.dev/series/ics-8086/" target="_blank" rel="noreferrer">配套复习笔记 ↗</a><a href="https://github.com/nisconder/8086-step-lab" target="_blank" rel="noreferrer">源码 ↗</a></nav></header>
+  <main>
+    <div class="intro"><div><p class="eyebrow">16 位 · 指令级教学模型</p><h1>看见指令的每一步<span>。</span></h1><p>从代码到寄存器，再到一个标志位。单步执行，观察变化，随时回退。</p></div><div class="local-note"><span class="local-dot"></span>完全本地运行<br><small>不上传代码 · 无需账户</small></div></div>
+    <section class="lesson-bar" aria-label="选择实验"><label for="example">开始一个实验</label><select id="example"></select><p id="lesson-hint"></p></section>
+    <div class="workspace">
+      <section class="panel editor-panel" aria-labelledby="code-heading"><div class="panel-title"><h2 id="code-heading">程序</h2><span>16-bit / Intel 风格子集</span></div>
+        <label class="sr-only" for="code">汇编程序，可编辑</label><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        <div class="toolbar"><button id="step" class="primary">单步 <kbd>→</kbd></button><button id="play">连续运行</button><button id="back">回退</button><button id="reset">重置</button></div>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+        <div class="execution"><div class="panel-title"><h3>执行位置</h3><span id="pc-label"></span></div><ol id="listing" aria-label="指令列表"></ol></div>
+      </section>
+      <div class="state-column">
+        <section class="panel" aria-labelledby="regs-heading"><div class="panel-title"><h2 id="regs-heading">寄存器</h2><span>HEX <span class="changed-key">变化</span></span></div><dl class="registers" id="registers"></dl><div class="segments"><span>DS <b>1000</b></span><span>SS <b>2000</b></span><span>PC <b id="pc-value">0000</b></span></div></section>
+        <section class="panel flags-panel" aria-labelledby="flags-heading"><div class="panel-title"><h2 id="flags-heading">标志位</h2><span>— 表示未定义</span></div><div class="flags" id="flags"></div><p class="micro">CF 无符号进位 / 借位 · OF 有符号溢出 · PF 低字节偶校验</p></section>
+        <section class="panel memory-panel" aria-labelledby="memory-heading"><div class="panel-title"><h2 id="memory-heading">内存与栈</h2><span>20 位物理地址 · 字节</span></div><div id="memory"></div><p class="micro">word = 低地址字节 + 高地址字节 × 256。含 BP 的地址使用 SS，其余使用 DS。</p></section>
+      </div>
+    </div>
+    <section class="scope"><details><summary>这个实验支持哪些指令？</summary><p><code>MOV ADD SUB CMP INC DEC AND OR XOR JMP JZ JNZ JC JNC JO JNO PUSH POP CALL RET NOP HLT</code></p><p>支持 AX/BX/CX/DX/SI/DI/BP/SP 的 16 位操作；十进制、0x 前缀、H/B 后缀立即数；8086 合法基址/变址组合与位移。所有内存操作均为 word。逻辑运算后的 AF 显示为未定义。</p><p>这是便于跟踪状态的教学模型：PC 与 CALL/RET 返回位置使用指令索引。没有机器码编码、时钟、DOS、中断、8 位寄存器或完整汇编器；未初始化内存按 0 显示。每次连续运行最多 1,000 步，回退保留最近 256 步。</p></details></section>
+    <footer>一个小实验，连接代码与机器。<a href="https://github.com/nisconder">Nisconder</a><span>v0.1 · MIT</span></footer>
+  </main>
+</body></html>
