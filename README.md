@@ -2,6 +2,10 @@
 
 逐条执行 16 位汇编指令，观察寄存器、算术标志、内存字节序与调用栈。五个可编辑实验与 [ICS / 8086 复习笔记](https://nisconder.pages.dev/series/ics-8086/) 配套；代码只在浏览器内运行，无第三方依赖或网络请求。
 
+**[打开在线实验室](https://nisconder.github.io/8086-step-lab/)**
+
+![单步执行 ADD 后的寄存器和标志位](preview.jpg)
+
 ## 使用
 
 安装 Node.js 20 或更高版本，然后运行：
