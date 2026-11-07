@@ -1,7 +1,10 @@
 import { compile, createMachine, step, REGISTERS, FLAG_NAMES, hex, readWord } from './core.mjs';
 import { EXAMPLES } from './examples.mjs';
+import { CHAPTERS } from './chapters.mjs';
+import { resolveSelection, selectionHref } from './routing.mjs';
 const $ = id => document.getElementById(id);
 let program, state = createMachine(), before = null, history = [], dirty = true, timer = null, runSteps = 0, selectedRegister = 'AX';
+let activeChapter = null, activeDemo = null, customized = false;
 const registerCells = new Map();
 const flagText = { CF: '无符号进位或借位', PF: '结果低字节的 1 为偶数个', AF: '低四位进位或借位', ZF: '结果为零', SF: '结果的最高位', OF: '有符号运算溢出' };
 const element = (tag, text, className) => {
@@ -18,7 +21,7 @@ function controlState() {
 }
 function stop() { clearInterval(timer); timer = null; controlState(); }
 function reset() {
-  stop(); before = null; history = []; state = createMachine();
+  stop(); before = null; history = []; state = createMachine(activeDemo?.initial || {});
   try { program = compile($('code').value); dirty = false; message('程序已就绪。点击单步，观察第一次变化。'); }
   catch (error) { program = null; dirty = true; message(error.message, true); }
   render();
@@ -152,6 +155,7 @@ function render() {
     cell.append(element('span', name), element('strong', state.flags[name] ?? '—')); return cell;
   }));
   $('pc-value').textContent = hex(state.pc); $('sp-value').textContent = hex(state.regs.SP); $('pc-label').textContent = 'PC ' + state.pc;
+  $('ds-value').textContent = hex(state.ds); $('ss-value').textContent = hex(state.ss);
   $('next-instruction').textContent = !program ? '等待有效程序' : state.halted ? '执行结束' : program.instructions[state.pc]?.text ?? '—';
   $('trace-op').textContent = state.last ? state.last.text.slice(0, 20) : '等待执行';
   $('trace-dest').textContent = traceDestination();
@@ -166,13 +170,95 @@ function render() {
   $('back').disabled = history.length === 0 || dirty;
   $('step').disabled = !dirty && state.halted; $('play').disabled = !dirty && state.halted;
   controlState();
+  updateCheckpoints();
+}
+function chapterLabel(chapter) {
+  return chapter.id === '00' ? '导读' : chapter.id === '99' ? '速查' : '第 ' + chapter.id + ' 篇';
+}
+function updateCheckpoints() {
+  $('demo-edited-note').hidden = !customized;
+  const originalState = !customized && !dirty;
+  for (const button of $('demo-checkpoints').children) {
+    const target = Number(button.dataset.step);
+    button.disabled = customized;
+    button.classList.toggle('checkpoint-current', originalState && state.steps === target);
+    button.classList.toggle('checkpoint-past', originalState && state.steps > target);
+    button.firstElementChild.textContent = (originalState && state.steps === target ? '当前 · ' : '') + '第 ' + target + ' 步';
+    if (originalState && state.steps === target) button.setAttribute('aria-current', 'step');
+    else button.removeAttribute('aria-current');
+  }
+}
+function jumpToCheckpoint(target) {
+  stop();
+  if (customized || !activeDemo) return;
+  if (dirty || state.steps > target) reset();
+  if (!program) return;
+  try {
+    while (state.steps < target && !state.halted) {
+      const next = step(program, state);
+      history.push(state); if (history.length > 256) history.shift();
+      before = state; state = next;
+    }
+    message('当前第 ' + state.steps + ' 步 · ' + (state.last?.text || '初始状态'));
+    render(); pulseFlow();
+  } catch (error) { message(error.message, true); render(); }
+}
+function buildGuide() {
+  $('guide-article').textContent = chapterLabel(activeChapter) + ' · ' + activeChapter.title + ' ↗';
+  $('guide-article').href = activeChapter.url;
+  $('source-section').textContent = activeDemo.sourceSection ? '对应小节：' + activeDemo.sourceSection : '';
+  $('demo-scope').textContent = activeDemo.scopeNote || activeChapter.scopeNote;
+  $('demo-steps').replaceChildren(...(activeDemo.steps || []).map(text => element('li', text)));
+  $('demo-checkpoints').replaceChildren(...(activeDemo.checkpoints || []).map(checkpoint => {
+    const button = element('button', undefined, 'checkpoint'); button.type = 'button';
+    button.dataset.step = checkpoint.step;
+    button.setAttribute('aria-label', '查看第 ' + checkpoint.step + ' 步：' + checkpoint.text);
+    button.append(element('strong', '第 ' + checkpoint.step + ' 步'), element('span', checkpoint.text));
+    button.addEventListener('click', () => jumpToCheckpoint(checkpoint.step));
+    return button;
+  }));
+}
+function applySelection(selection, writeHistory = true) {
+  stop();
+  activeChapter = CHAPTERS.find(chapter => chapter.id === selection.chapterId);
+  activeDemo = EXAMPLES.find(example => example.id === selection.demoId) || null;
+  $('chapter').value = activeChapter.id;
+  $('chapter-article').href = activeChapter.url;
+  $('route-message').textContent = '';
+  document.title = chapterLabel(activeChapter) + ' · ' + activeChapter.title + ' — 8086 Step Lab';
+  const hasDemo = Boolean(activeDemo);
+  for (const id of ['demo-picker', 'workbench', 'demo-guide', 'lab-notes']) $(id).hidden = !hasDemo;
+  $('reading-panel').hidden = hasDemo;
+  if (!hasDemo) {
+    $('reading-title').textContent = chapterLabel(activeChapter) + ' · ' + activeChapter.title;
+    $('reading-scope').textContent = activeChapter.scopeNote;
+    $('reading-article').href = activeChapter.url;
+  } else {
+    const examples = activeChapter.demoIds.map(id => EXAMPLES.find(example => example.id === id));
+    $('example').replaceChildren(...examples.map(example => {
+      const option = element('option', example.title); option.value = example.id; return option;
+    }));
+    $('lesson-tabs').replaceChildren(...examples.map(example => {
+      const button = element('button', example.title, 'lesson-tab'); button.type = 'button';
+      button.dataset.example = example.id;
+      button.setAttribute('aria-pressed', example.id === activeDemo.id);
+      button.addEventListener('click', () => loadExample(example.id)); return button;
+    }));
+    $('example').value = activeDemo.id;
+    $('lesson-number').textContent = (examples.indexOf(activeDemo) + 1) + ' / ' + examples.length;
+    $('code').value = activeDemo.code; $('lesson-hint').textContent = activeDemo.hint;
+    $('code').scrollTop = 0; $('code').scrollLeft = 0;
+    selectedRegister = activeDemo.observeRegister || 'AX'; customized = false;
+    buildGuide(); highlightCode(); reset();
+  }
+  if (writeHistory) {
+    const url = selectionHref(window.location.href, selection);
+    if (url !== window.location.href) window.history.pushState(null, '', url);
+  }
 }
 function loadExample(id = $('example').value) {
-  const example = EXAMPLES.find(e => e.id === id);
-  $('example').value = example.id; $('code').value = example.code; $('lesson-hint').textContent = example.hint;
-  $('lesson-number').textContent = String(EXAMPLES.indexOf(example) + 1).padStart(2, '0') + ' / 05';
-  for (const button of $('lesson-tabs').children) button.setAttribute('aria-pressed', button.dataset.example === id);
-  $('code').scrollTop = 0; $('code').scrollLeft = 0; highlightCode(); reset();
+  const chapter = activeChapter?.demoIds.includes(id) ? activeChapter : CHAPTERS.find(item => item.demoIds.includes(id));
+  if (chapter) applySelection({ chapterId: chapter.id, demoId: id });
 }
 for (const name of REGISTERS) {
   const cell = element('button', undefined, 'register-cell'); cell.type = 'button';
@@ -181,12 +267,32 @@ for (const name of REGISTERS) {
   registerCells.set(name, cell); $('registers').append(cell);
 }
 for (let i = 0; i < 16; i++) $('bit-strip').append(element('span', '0'));
-for (const [i, example] of EXAMPLES.entries()) {
-  const option = element('option', example.title); option.value = example.id; $('example').append(option);
-  const button = element('button', undefined, 'lesson-tab'); button.type = 'button'; button.dataset.example = example.id;
-  button.append(element('small', String(i + 1).padStart(2, '0')), element('span', example.title));
-  button.addEventListener('click', () => loadExample(example.id)); $('lesson-tabs').append(button);
+for (const chapter of CHAPTERS) {
+  const label = chapter.id + ' ' + chapter.title;
+  const option = element('option', label + (chapter.demoIds.length ? '' : '（阅读）'));
+  option.value = chapter.id; $('chapter').append(option);
+  const row = element('li'), button = element('button'); button.type = 'button';
+  button.append(element('span', label), element('small', chapter.demoIds.length ? chapter.demoIds.length + ' 个演示' : '阅读'));
+  button.addEventListener('click', () => {
+    applySelection({ chapterId: chapter.id, demoId: chapter.demoIds[0] || null });
+    $('chapter').scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
+  row.append(button); $('chapter-index').append(row);
 }
+$('chapter').addEventListener('change', () => {
+  const chapter = CHAPTERS.find(item => item.id === $('chapter').value);
+  applySelection({ chapterId: chapter.id, demoId: chapter.demoIds[0] || null });
+});
+$('first-demo').addEventListener('click', () => {
+  const chapter = CHAPTERS.find(item => item.id === '01');
+  applySelection({ chapterId: chapter.id, demoId: chapter.demoIds[0] });
+});
+$('copy-link').addEventListener('click', async () => {
+  const url = selectionHref(window.location.href, { chapterId: activeChapter.id, demoId: activeDemo?.id || null });
+  try { await navigator.clipboard.writeText(url); $('route-message').textContent = '链接已复制'; }
+  catch { $('route-message').textContent = url; }
+});
+window.addEventListener('popstate', () => applySelection(resolveSelection(window.location.search), false));
 $('example').addEventListener('change', () => loadExample());
 $('step').addEventListener('click', execute); $('reset').addEventListener('click', reset);
 $('back').addEventListener('click', () => { stop(); before = state; state = history.pop(); message('已回退到第 ' + state.steps + ' 步。'); render(); });
@@ -198,10 +304,11 @@ $('play').addEventListener('click', () => {
   controlState();
 });
 $('code').addEventListener('scroll', syncEditorScroll);
-$('code').addEventListener('input', () => { stop(); dirty = true; program = null; highlightCode(); message('程序已修改。点击单步或重置，从初始状态重新开始。'); render(); });
+$('code').addEventListener('input', () => { stop(); dirty = true; program = null; customized = $('code').value !== activeDemo.code; highlightCode(); message('程序已修改。点击单步或重置，从初始状态重新开始。'); render(); });
 document.addEventListener('keydown', event => {
+  if (!activeDemo) return;
   const active = document.activeElement;
   if (event.key === 'ArrowRight' && !['TEXTAREA', 'INPUT', 'SELECT'].includes(active.tagName) && (active.tagName !== 'BUTTON' || active.id === 'step')) { event.preventDefault(); if (!$('step').disabled) execute(); }
   if (event.key === 'Escape') stop();
 });
-loadExample(EXAMPLES[0].id);
+applySelection(resolveSelection(window.location.search), false);

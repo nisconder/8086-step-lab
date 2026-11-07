@@ -2,14 +2,14 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="一块可交互的 16 位实验台。单步执行汇编，观察寄存器、标志、内存与调用栈。完全在浏览器本地运行。">
+<meta name="description" content="配合 ICS 与 8086 博客章节的交互演示。按章节单步执行，观察寄存器、标志、内存与调用栈。">
 <meta name="color-scheme" content="light"><meta name="theme-color" content="#edf0ec">
-<title>8086 Step Lab · 十六位，尽收眼底</title>
+<title>8086 Step Lab · 博客章节演示</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%23113c3b'/%3E%3Ctext x='24' y='33' text-anchor='middle' font-family='monospace' font-size='27' font-weight='bold' fill='%23b6e0cc'%3E86%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css"><script type="module" src="app.mjs"></script>
 </head>
 <body>
-<a class="skip-link" href="#workbench">跳到实验台</a>
+<a class="skip-link" href="#chapter">跳到章节选择</a>
 <header class="masthead">
 <a class="brand" href="./" aria-label="8086 Step Lab 首页">
 <svg class="brand-symbol" viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="8" y="8" width="32" height="32" rx="6" stroke="currentColor" stroke-width="1.5"/><path d="M17 2v6m14-6v6M17 40v6m14-6v6M2 17h6m-6 14h6m32-14h6m-6 14h6" stroke="currentColor" stroke-width="1.5"/><text x="24" y="30" text-anchor="middle" font-family="monospace" font-size="18" fill="currentColor">86</text></svg>
@@ -17,15 +17,17 @@
 <nav aria-label="相关链接"><a href="https://nisconder.pages.dev/series/ics-8086/" target="_blank" rel="noreferrer">复习笔记 <span aria-hidden="true">↗</span></a><a href="https://github.com/nisconder/8086-step-lab" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a><a class="scope-link" href="#scope">指令范围</a></nav>
 </header>
 <main>
-<section class="intro" aria-labelledby="title"><div><p class="eyebrow"><span></span>8086 · 指令级教学模型</p><h1 id="title">十六位，<span>尽收眼底。</span></h1><p class="intro-description">让一条指令的来龙去脉，都有迹可循。</p></div><div class="intro-aside"><span class="technical-mark" aria-hidden="true">0x86<span>_</span></span><p><i></i>本地计算 · 无需账户</p></div></section>
-<section class="lesson-bar" aria-label="选择实验"><div class="lesson-label"><span>实验手册</span><small id="lesson-number">01 / 05</small></div><div id="lesson-tabs" class="lesson-tabs" role="group" aria-label="实验主题"></div><div class="mobile-lesson"><label class="sr-only" for="example">开始一个实验</label><select id="example"></select></div></section>
+<section class="intro" aria-labelledby="title"><div><h1 id="title">8086 章节演示</h1><p class="intro-description">按博客章节选择示例，单步观察寄存器、标志位和内存。</p></div></section>
+<section class="chapter-picker" aria-label="选择博客章节"><label for="chapter">博客章节</label><select id="chapter"></select><a id="chapter-article" target="_blank" rel="noreferrer">阅读本章 ↗</a><button type="button" id="copy-link">复制链接</button><span id="route-message" role="status" aria-live="polite"></span></section>
+<section class="lesson-bar" id="demo-picker" aria-label="选择演示"><div class="lesson-label"><span>本章演示</span><small id="lesson-number"></small></div><div id="lesson-tabs" class="lesson-tabs" role="group" aria-label="本章演示"></div><div class="mobile-lesson"><label class="sr-only" for="example">选择演示</label><select id="example"></select></div></section>
+<section id="reading-panel" class="reading-panel" hidden><h2 id="reading-title"></h2><p id="reading-scope"></p><a id="reading-article" target="_blank" rel="noreferrer">打开文章 ↗</a><button type="button" id="first-demo">打开第 01 篇演示</button></section>
 <section id="workbench" class="workbench" aria-label="交互实验台">
 <div class="control-bar"><div class="controls">
 <button id="step" class="primary"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 4 7 6-7 6V4ZM15 4v12"/></svg><span>单步执行</span><kbd>→</kbd></button>
 <button id="play"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 4 9 6-9 6V4Z"/></svg><span id="play-label">连续运行</span></button>
 <button id="back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5 3 9l4 4M3 9h8a5 5 0 0 1 5 5v2"/></svg><span>回退</span></button>
 <button id="reset" class="quiet"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5v5h5M4 10a6 6 0 1 1 1.6 4.1"/></svg><span>重置</span></button>
-</div><span class="session-state"><i id="session-led"></i><span id="session-label">READY</span></span></div>
+</div><div class="control-links"><a href="#demo-guide">操作与检查点 ↓</a><span class="session-state"><i id="session-led"></i><span id="session-label">READY</span></span></div></div>
 <div class="workspace">
 <section class="editor-panel" aria-labelledby="code-heading">
 <div class="panel-title"><div><span class="section-tag">SOURCE</span><h2 id="code-heading">汇编程序</h2></div><span class="file-label"><i></i>experiment.asm</span></div>
@@ -41,15 +43,17 @@
 <div class="readout"><div class="readout-heading"><span><b id="selected-register">AX</b><span>观察寄存器</span></span><span class="readout-unit">HEX / 16 BIT</span></div><div class="readout-value"><strong id="selected-value">0000</strong><span id="value-change">初始状态</span></div><div class="value-interpretations"><span>无符号 <b id="unsigned-value">0</b></span><span>有符号 <b id="signed-value">0</b></span></div><div class="bit-labels" aria-hidden="true"><span>BIT 15</span><span>BIT 0</span></div><div id="bit-strip" class="bit-strip" role="img" aria-label="AX 的 16 位二进制值"></div></div>
 <div class="register-caption"><span>选择寄存器观察</span><span><i></i>本步变化</span></div><div class="registers" id="registers" role="group" aria-label="选择观察的寄存器"></div>
 <div class="flags-heading"><h3>状态标志</h3><span>— 未定义</span></div><div class="flags" id="flags"></div>
-<div class="segments"><span>DS <b>1000</b></span><span>SS <b>2000</b></span><span>SP <b id="sp-value">FFFE</b></span><span>PC <b id="pc-value">0000</b></span></div>
+<div class="segments"><span>DS <b id="ds-value">1000</b></span><span>SS <b id="ss-value">2000</b></span><span>SP <b id="sp-value">FFFE</b></span><span>PC <b id="pc-value">0000</b></span></div>
 </section>
 </div>
 </section>
-<div class="notes-grid">
-<section class="observation" aria-labelledby="observation-heading"><div class="panel-title"><div><span class="section-tag">OBSERVE</span><h2 id="observation-heading">这一刻，发生了什么</h2></div><span class="observation-symbol" aria-hidden="true">→</span></div><p id="operation-caption">点击单步，沿着指令观察一次状态变化。</p><div class="lesson-insight"><span>观察重点</span><p id="lesson-hint"></p></div></section>
-<section class="memory-panel" aria-labelledby="memory-heading"><div class="panel-title"><div><span class="section-tag">MEMORY</span><h2 id="memory-heading">字节留下的痕迹</h2></div><span class="memory-unit">20 BIT / LITTLE ENDIAN</span></div><div id="memory"></div><p class="micro memory-note">含 BP 的地址使用 SS，其余使用 DS。word 的低字节存放在低地址。</p></section>
+<section class="demo-guide" id="demo-guide"><div class="guide-heading"><h2>操作与检查点</h2><a id="guide-article" target="_blank" rel="noreferrer"></a></div><p id="source-section"></p><div class="guide-columns"><ol id="demo-steps"></ol><div><div id="demo-checkpoints"></div><p id="demo-edited-note" hidden>程序已修改，检查点仅适用于原示例。</p></div></div><p id="demo-scope"></p></section>
+<div class="notes-grid" id="lab-notes">
+<section class="observation" aria-labelledby="observation-heading"><div class="panel-title"><div><h2 id="observation-heading">执行说明</h2></div><span class="observation-symbol" aria-hidden="true">→</span></div><p id="operation-caption">点击单步，观察状态变化。</p><div class="lesson-insight"><span>观察重点</span><p id="lesson-hint"></p></div></section>
+<section class="memory-panel" aria-labelledby="memory-heading"><div class="panel-title"><div><h2 id="memory-heading">内存</h2></div><span class="memory-unit">20 BIT / LITTLE ENDIAN</span></div><div id="memory"></div><p class="micro memory-note">含 BP 的地址使用 SS，其余使用 DS。word 的低字节存放在低地址。</p></section>
 </div>
+<details class="chapter-index"><summary>全部章节与演示范围</summary><ol id="chapter-index"></ol></details>
 <section class="scope" id="scope"><details><summary>模型范围与指令支持 <span>了解实验边界 <b aria-hidden="true">+</b></span></summary><div><p><code>MOV ADD SUB CMP INC DEC AND OR XOR JMP JZ JNZ JC JNC JO JNO PUSH POP CALL RET NOP HLT</code></p><p>支持 AX/BX/CX/DX/SI/DI/BP/SP 的 16 位操作；十进制、0x 前缀、H/B 后缀立即数；8086 合法基址/变址组合与位移。所有内存操作均为 word。逻辑运算后的 AF 显示为未定义。</p><p>这是便于跟踪状态的教学模型：PC 与 CALL/RET 返回位置使用指令索引。没有机器码编码、时钟、DOS、中断、8 位寄存器或完整汇编器；未初始化内存按 0 显示。每轮连续运行最多 1,000 步，回退保留最近 256 步。</p></div></details></section>
-<footer><a class="footer-brand" href="https://github.com/nisconder">NISCONDER<span>一个小实验，连接代码与机器。</span></a><span>BUILT TO UNDERSTAND<span class="footer-dot">·</span>v0.2 / MIT</span></footer>
+<footer><a class="footer-brand" href="https://github.com/nisconder">NISCONDER</a><span>v0.3 / MIT</span></footer>
 </main>
 </body></html>

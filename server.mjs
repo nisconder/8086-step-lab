@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-const publicFiles = new Set(['index.html', 'style.css', 'app.mjs', 'core.mjs', 'examples.mjs']);
+const publicFiles = new Set(['index.html', 'style.css', 'app.mjs', 'core.mjs', 'examples.mjs', 'chapters.mjs', 'routing.mjs']);
 const server = http.createServer(async (req, res) => {
   const file = new URL(req.url, 'http://localhost').pathname.slice(1) || 'index.html';
   if (!publicFiles.has(file)) { res.writeHead(404); res.end('Not found'); return; }

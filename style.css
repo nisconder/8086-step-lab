@@ -236,4 +236,47 @@ footer{display:flex;align-items:center;justify-content:space-between;gap:20px;pa
   .footer-brand>span{display:block;margin:7px 0 0;font-size:9px}.footer-dot{margin:0 5px}
   .code-editor textarea,.code-editor pre{font-size:12px}
 }
+[hidden]{display:none!important}
+.chapter-picker{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;margin:0 0 14px;font-size:13px}
+.chapter-picker label{font-weight:600}
+.chapter-picker select{width:100%;min-width:0;min-height:44px;padding:8px 12px;color:var(--ink);border:1px solid #bdccc1;border-radius:4px;background:var(--surface);font-size:14px}
+.chapter-picker a{white-space:nowrap;text-decoration:none;padding:10px 0}
+.chapter-picker button,.reading-panel button{min-height:44px;border:1px solid #bdccc1;border-radius:4px;background:var(--surface);padding:8px 12px;color:var(--ink);font-size:13px}
+#route-message{grid-column:2/-1;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+#route-message:empty{display:none}
+.lesson-tabs{flex-wrap:wrap}
+.control-links{display:flex;align-items:center;gap:18px;font-size:12px;color:var(--muted)}
+.control-links>a{text-decoration:none}
+.reading-panel{padding:24px;background:var(--surface);border:1px solid var(--line);border-radius:6px;margin:20px 0}
+.reading-panel h2{font-size:18px}
+.reading-panel p{font-size:14px;max-width:760px;color:var(--muted);margin:12px 0 18px}
+.reading-panel a{font-size:14px;margin-right:24px}
+.demo-guide{padding:20px;background:var(--surface);border:1px solid var(--line);border-radius:6px;margin-top:20px;scroll-margin-top:80px}
+.guide-heading{display:flex;justify-content:space-between;gap:16px;align-items:baseline}
+.guide-heading h2{font-size:15px;flex-shrink:0}
+.guide-heading a{font-size:13px;text-decoration:none;text-align:right}
+#source-section{font-size:13px;color:var(--muted);margin:8px 0 14px}
+.guide-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:24px}
+#demo-steps{font-size:14px;margin:0;padding-left:21px;line-height:1.8}
+#demo-steps li{padding:3px 0 7px 3px}
+#demo-checkpoints{display:grid;gap:7px}
+.checkpoint{display:flex;flex-direction:column;gap:4px;min-height:55px;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:#f0f5ed;color:var(--ink)}
+.checkpoint strong{font-size:12px;font-weight:600}
+.checkpoint span{font-size:13px;line-height:1.6}
+.checkpoint:hover:not(:disabled){border-color:#72957f;background:#e7f0e2}
+.checkpoint.checkpoint-current{border-color:#51856a;background:#dfeeda}
+.checkpoint.checkpoint-past{background:#f6f8f2}
+.checkpoint:disabled{opacity:.5}
+#demo-edited-note,#demo-scope{font-size:12px;line-height:1.8;color:var(--muted)}
+#demo-scope{border-top:1px solid var(--line);padding-top:12px;margin:15px 0 0}
+.chapter-index{border-top:1px solid var(--line);margin-top:24px;padding:10px 0}
+.chapter-index summary{min-height:44px;padding:10px 0;cursor:pointer;font-size:14px}
+.chapter-index ol{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 0;padding:0}
+.chapter-index button{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;width:100%;padding:10px 12px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:4px;color:var(--ink);font-size:13px}
+.chapter-index small{white-space:nowrap;color:var(--muted);font-size:12px}
+.intro h1{font-size:32px}
+.intro-description{font-size:14px}
+.memory-note,.micro{font-size:11px}
+@media(max-width:850px){.control-links .session-state{display:none}.control-links{font-size:11px}.guide-columns{gap:16px}.guide-heading{align-items:flex-start}}
+@media(max-width:560px){.chapter-picker{grid-template-columns:1fr 1fr;gap:6px 12px}.chapter-picker label{grid-column:1/-1}.chapter-picker select{grid-column:1/-1}.chapter-picker a{font-size:13px}.chapter-picker button{justify-self:end}.chapter-picker #route-message{grid-column:1/-1}.control-bar{flex-wrap:wrap}.controls{width:100%}.control-links{width:100%;justify-content:flex-end}.guide-heading{display:block}.guide-heading a{display:block;text-align:left;margin-top:6px;line-height:1.7}.demo-guide{padding:16px}.guide-columns{grid-template-columns:1fr;gap:12px}.chapter-index ol{grid-template-columns:1fr}.intro h1{font-size:28px}.intro-description{font-size:13px}.reading-panel{padding:18px}.reading-panel button{display:block;margin-top:12px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}}
