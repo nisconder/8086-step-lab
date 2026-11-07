@@ -2,6 +2,7 @@ import { compile, createMachine, step, REGISTERS, FLAG_NAMES, hex, readWord } fr
 import { EXAMPLES } from './examples.mjs';
 import { CHAPTERS } from './chapters.mjs';
 import { resolveSelection, selectionHref } from './routing.mjs';
+import { executionTransition } from './execution-view.mjs';
 const $ = id => document.getElementById(id);
 let program, state = createMachine(), before = null, history = [], dirty = true, timer = null, runSteps = 0, selectedRegister = 'AX';
 let activeChapter = null, activeDemo = null, customized = false;
@@ -63,10 +64,10 @@ function syncEditorScroll() {
   $('code-highlight').scrollLeft = $('code').scrollLeft;
   $('line-numbers').style.transform = 'translateY(-' + $('code').scrollTop + 'px)';
 }
-function describeStep() {
+function describeStep(transition) {
   if (dirty) return '程序已修改。下一次执行将从初始状态开始。';
+  if (transition.undoCaption) return transition.undoCaption;
   if (!state.last) return '点击单步，沿着一条指令观察第一次状态变化。';
-  if (before && before.steps > state.steps) return '已恢复第 ' + state.steps + ' 步的寄存器、标志与内存快照。';
   const changed = REGISTERS.filter(name => before && before.regs[name] !== state.regs[name]);
   const change = changed.map(name => name + ': ' + hex(before.regs[name]) + ' → ' + hex(state.regs[name])).join(' · ');
   const op = state.last.text.split(/\s/)[0].toUpperCase();
@@ -83,20 +84,9 @@ function describeStep() {
   if (op.startsWith('J')) return '读取当前标志，下一条指令索引为 PC ' + state.pc + '。跳转保留算术标志。';
   return [change || state.last.text, flags].filter(Boolean).join(' · ');
 }
-function traceDestination() {
-  const instruction = program?.instructions.find(ins => ins.line === state.last?.line);
-  if (!instruction) return '等待状态变化';
-  const { op, args } = instruction;
-  if (op === 'CMP') return 'ZF ' + state.flags.ZF + ' · CF ' + state.flags.CF;
-  if (['MOV', 'ADD', 'SUB', 'INC', 'DEC', 'AND', 'OR', 'XOR', 'POP'].includes(op)) {
-    return args[0].kind === 'reg' ? args[0].name + ' · ' + hex(state.regs[args[0].name]) : 'MEMORY · WORD';
-  }
-  if (op === 'PUSH') return 'SS:SP · ' + hex(state.regs.SP);
-  if (op === 'CALL' || op === 'RET' || op.startsWith('J')) return 'PC · ' + state.pc;
-  return op === 'HLT' ? 'HALTED' : '状态保留';
-}
-function renderMemory() {
-  const addresses = [...state.memory.keys()].sort((a, b) => a - b);
+function renderMemory(rewinding) {
+  const restoredEmpty = rewinding ? [...before.memory.keys()].filter(addr => !state.memory.has(addr)) : [];
+  const addresses = [...new Set([...state.memory.keys(), ...restoredEmpty])].sort((a, b) => a - b);
   if (!addresses.length) {
     const empty = element('div', undefined, 'memory-empty');
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -113,19 +103,23 @@ function renderMemory() {
     copy.append(button); empty.append(svg, copy); $('memory').replaceChildren(empty); return;
   }
   const shown = addresses.slice(-128);
-  const range = element('p', hex(shown[0], 5) + 'h—' + hex(shown.at(-1), 5) + 'h · 已写入 ' + addresses.length + ' 字节' + (addresses.length > 128 ? '，展示最高 128 个地址，' + (addresses.length - 128) + ' 个较低地址未显示' : ''), 'micro');
+  const range = element('p', hex(shown[0], 5) + 'h—' + hex(shown.at(-1), 5) + 'h · 已写入 ' + state.memory.size + ' 字节'
+    + (restoredEmpty.length ? ' · 已撤销 ' + restoredEmpty.length + ' 字节的写入，未写入处按 00 读取' : '')
+    + (addresses.length > 128 ? '，展示最高 128 个地址，' + (addresses.length - 128) + ' 个较低地址未显示' : ''), 'micro');
   const table = element('table'), head = element('thead'), header = element('tr');
   ['物理地址', '字节', '从此处读 word'].forEach(t => header.append(element('th', t))); head.append(header); table.append(head);
   const body = element('tbody');
   for (const addr of shown) {
     const row = element('tr');
     row.classList.toggle('changed', Boolean(before && before.memory.get(addr) !== state.memory.get(addr)));
-    row.append(element('td', hex(addr, 5)), element('td', hex(state.memory.get(addr), 2)), element('td', hex(readWord(state, addr))));
+    if (!state.memory.has(addr)) row.title = '本次写入已撤销，恢复为未写入；按 00 读取。';
+    row.append(element('td', hex(addr, 5)), element('td', hex(state.memory.get(addr) ?? 0, 2)), element('td', hex(readWord(state, addr))));
     body.append(row);
   }
   table.append(body); $('memory').replaceChildren(range, table);
 }
 function render() {
+  const transition = executionTransition(program, state, before);
   for (const name of REGISTERS) {
     const cell = registerCells.get(name);
     const changed = Boolean(before && before.regs[name] !== state.regs[name]);
@@ -157,16 +151,16 @@ function render() {
   $('pc-value').textContent = hex(state.pc); $('sp-value').textContent = hex(state.regs.SP); $('pc-label').textContent = 'PC ' + state.pc;
   $('ds-value').textContent = hex(state.ds); $('ss-value').textContent = hex(state.ss);
   $('next-instruction').textContent = !program ? '等待有效程序' : state.halted ? '执行结束' : program.instructions[state.pc]?.text ?? '—';
-  $('trace-op').textContent = state.last ? state.last.text.slice(0, 20) : '等待执行';
-  $('trace-dest').textContent = traceDestination();
-  $('operation-caption').textContent = describeStep();
+  $('trace-op').textContent = transition.traceOp;
+  $('trace-dest').textContent = transition.traceDest;
+  $('operation-caption').textContent = describeStep(transition);
   $('listing').replaceChildren(...(program?.instructions.map((ins, pc) => {
     const row = element('li'); row.classList.toggle('current', !state.halted && pc === state.pc);
-    row.classList.toggle('previous', state.last?.line === ins.line);
+    row.classList.toggle('previous', !transition.rewinding && state.last?.line === ins.line);
     row.append(element('span', String(ins.line).padStart(2, '0')), element('code', ins.text));
-    if (!state.halted && pc === state.pc) { row.append(element('b', '下一条')); row.setAttribute('aria-current', 'step'); } return row;
+    if (!state.halted && pc === state.pc) { row.append(element('b', transition.rewinding ? '已撤销 · 下一条' : '下一条')); row.setAttribute('aria-current', 'step'); } return row;
   }) ?? []));
-  renderMemory();
+  renderMemory(transition.rewinding);
   $('back').disabled = history.length === 0 || dirty;
   $('step').disabled = !dirty && state.halted; $('play').disabled = !dirty && state.halted;
   controlState();
@@ -295,7 +289,14 @@ $('copy-link').addEventListener('click', async () => {
 window.addEventListener('popstate', () => applySelection(resolveSelection(window.location.search), false));
 $('example').addEventListener('change', () => loadExample());
 $('step').addEventListener('click', execute); $('reset').addEventListener('click', reset);
-$('back').addEventListener('click', () => { stop(); before = state; state = history.pop(); message('已回退到第 ' + state.steps + ' 步。'); render(); });
+$('back').addEventListener('click', () => {
+  stop();
+  if (dirty || !history.length) return;
+  $('signal-flow').getAnimations().forEach(animation => animation.cancel());
+  before = state; state = history.pop();
+  message('已撤销 ' + (before.last?.text || '上一步') + ' · 回到第 ' + state.steps + ' 步。');
+  render();
+});
 $('play').addEventListener('click', () => {
   if (timer) { stop(); return; }
   if (dirty) reset(); if (!program || state.halted) return;

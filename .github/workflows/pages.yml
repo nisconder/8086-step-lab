@@ -19,7 +19,7 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           mkdir .pages
-          cp index.html style.css app.mjs core.mjs examples.mjs chapters.mjs routing.mjs .pages/
+          cp index.html style.css app.mjs core.mjs examples.mjs chapters.mjs routing.mjs execution-view.mjs .pages/
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
